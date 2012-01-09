@@ -35,7 +35,7 @@ CoRec := RECORD
 
 CoRec MakeCo(with_x le, singles ri) := TRANSFORM
   SELF.covariance := (le.e_xy - le.mean*ri.mean);
-  SELF.pearson := (le.e_xy - le.mean*ri.mean)/SQRT(le.var)*SQRT(ri.var);
+  SELF.pearson := (le.e_xy - le.mean*ri.mean)/(le.sd*ri.sd);
   SELF := le;
   END;
 

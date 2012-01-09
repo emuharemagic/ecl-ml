@@ -19,4 +19,12 @@ EXPORT Identity := Scalar AND MAX(dn,value)=1;
 // Is the matrix symmetric
 EXPORT Symmetric := Eq(dn,Trans(dn));
 
+// Upper triangular if no elements exist in the bottom, left corner
+EXPORT UpperTriangular := ~EXISTS(dn(x>y));
+
+// Lower triangular if no elements exist in the top right
+EXPORT LowerTriangular := ~EXISTS(dn(x<y));
+
+EXPORT Triangular := UpperTriangular OR LowerTriangular;
+
   END;

@@ -17,6 +17,7 @@ SHARED	NotLast(STRING S) := IF(Str.FindCount(S,' ')=0,'',S[1..Str.Find(S,' ',Str
 SHARED	NotNN(STRING S,UNSIGNED2 NN) := MAP( NN = 1 => NotFirst(S),
 																						 NN = Str.WordCount(S) => NotLast(S),
                                              S[1..Str.Find(S,' ',NN-1)]+S[Str.Find(S,' ',NN)+1..] );
+SHARED  LastN(STRING S) := Str.GetNthWord(S,Str.WordCount(S));																						 
 
 SHARED Records := COUNT(DEDUP(D,id,ALL));
 
@@ -94,9 +95,30 @@ EXPORT Apriori3 := FUNCTION
 		SELF := ri;
 	END;
   // Generate a record ID / candidate list tuple for every matching record
-	With1 := JOIN(D,Cands,LEFT.value = RIGHT.value_1,WithValue1(LEFT,RIGHT));
-	With2 := JOIN(D,With1,LEFT.value = RIGHT.value_2 AND LEFT.id = RIGHT.id,TRANSFORM(RIGHT));
-	With3 := JOIN(D,With2,LEFT.value = RIGHT.value_3 AND LEFT.id = RIGHT.id,TRANSFORM(RIGHT));
+	With1S := JOIN(D,Cands,LEFT.value = RIGHT.value_1,WithValue1(LEFT,RIGHT),HASH);
+	With1FR := JOIN(D,Cands,LEFT.value = RIGHT.value_1,WithValue1(LEFT,RIGHT),MANY LOOKUP);
+	With1FL := JOIN(Cands,D,LEFT.value_1 = RIGHT.value,WithValue1(RIGHT,LEFT),MANY LOOKUP);
+
+	With1 := MAP ( COUNT(Cands)*SIZEOF(Cands)<Config.MaxLookup => With1FR, 
+								 COUNT(D)*SIZEOF(D)<Config.MaxLookup => With1FL, 
+	               With1S );
+								 
+	With2S := JOIN(D,With1,LEFT.value = RIGHT.value_2 AND LEFT.id = RIGHT.id,TRANSFORM(RIGHT),HASH);
+	With2FR := JOIN(D,With1,LEFT.value = RIGHT.value_2 AND LEFT.id = RIGHT.id,TRANSFORM(RIGHT),MANY LOOKUP);
+	With2FL := JOIN(With1,D,LEFT.value_2 = RIGHT.value AND LEFT.id = RIGHT.id,TRANSFORM(LEFT),MANY LOOKUP);
+
+	With2 := MAP ( COUNT(With1)*SIZEOF(With1)<Config.MaxLookup => With2FR, 
+								 COUNT(D)*SIZEOF(D)<Config.MaxLookup => With2FL, 
+	               With2S );
+
+	With3S := JOIN(D,With2,LEFT.value = RIGHT.value_3 AND LEFT.id = RIGHT.id,TRANSFORM(RIGHT),HASH);
+	With3FR := JOIN(D,With2,LEFT.value = RIGHT.value_3 AND LEFT.id = RIGHT.id,TRANSFORM(RIGHT),MANY LOOKUP);
+	With3FL := JOIN(With2,D,LEFT.value_3 = RIGHT.value AND LEFT.id = RIGHT.id,TRANSFORM(LEFT),MANY LOOKUP);
+
+	With3 := MAP ( COUNT(With2)*SIZEOF(With2)<Config.MaxLookup => With3FR, 
+								 COUNT(D)*SIZEOF(D)<Config.MaxLookup => With3FL, 
+	               With3S );
+
 
   Ragg := RECORD
 	  With3.value_1;
@@ -210,7 +232,7 @@ EXPORT EclatN(UNSIGNED2 N,UNSIGNED2 MinN=2) := FUNCTION
 	
 	// Of the existing data - what patterns are valid (above the threshold)
 	// The 0 elements denote the aggregates - makes passing around a loop a little easier
-	Groups(DATASET(EPE) di) := PROJECT(TABLE(di,{Pat,Types.t_Count Support := COUNT(GROUP)},Pat,MERGE)(Support>=M),TRANSFORM(EPE,SELF.id := 0,SELF:=LEFT));
+	Groups(DATASET(EPE) di) := PROJECT(TABLE(di,{Pat,Types.t_Count Support := COUNT(GROUP)},Pat)(Support>=M),TRANSFORM(EPE,SELF.id := 0,SELF:=LEFT));
 	// Whittle down our core dataset to the patterns which are still value
 	Filter(DATASET(EPE) di,DATASET(PatternElement) pe) := JOIN(di,pe,LEFT.pat=RIGHT.pat,TRANSFORM(LEFT));
 	// Generate the patterns of N+1 elements from those with N elements
@@ -220,7 +242,7 @@ EXPORT EclatN(UNSIGNED2 N,UNSIGNED2 MinN=2) := FUNCTION
 			SELF.id := le.id;
 			SELF.Pat := Str.GetNthWord(le.Pat,1)+' '+ ri.pat;
 		END;
-		RETURN JOIN(di,di,LEFT.id=RIGHT.id AND NotFirst(LEFT.Pat)=NotLast(RIGHT.Pat) AND (UNSIGNED)Str.GetNthWord(LEFT.Pat,1) > (UNSIGNED)Str.GetNthWord(RIGHT.Pat,1),NewPat(LEFT,RIGHT));
+		RETURN JOIN(di,di,LEFT.id=RIGHT.id AND NotFirst(LEFT.Pat)=NotLast(RIGHT.Pat) AND (UNSIGNED)Str.GetNthWord(LEFT.Pat,1) > (UNSIGNED)LastN(RIGHT.Pat),NewPat(LEFT,RIGHT));
 	END;
 	GenerationN(DATASET(EPE) di) := FUNCTION
 	  Eclat_Data := di(id<>0);

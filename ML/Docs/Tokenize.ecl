@@ -1,4 +1,4 @@
-﻿// A collection of routines dedicated to helping turn a stream of text into a set of working word elements
+// A collection of routines dedicated to helping turn a stream of text into a set of working word elements
 // Broken up into lots of steps; true ingest is messy - people will often need some hand-code
 // But we will take them as far as we can
 IMPORT Types FROM $;
@@ -65,7 +65,7 @@ END;
 // If the lexicon has been 'pruned' then this could be lossy (removing stop words or low frequency words)
 // Equally if two lexicon words have the SAME id; then multiple words could be mapped onto one
 EXPORT ToO(DATASET(Types.WordElement) r, DATASET(Types.LexiconElement) l) := FUNCTION
-
+  IMPORT ML; // A little ugly - should not really import down here
 	Types.OWordElement take(r le, l ri) := TRANSFORM
 		SELF.word := ri.word_id;
 		SELF.total_words := ri.total_words;
@@ -74,7 +74,10 @@ EXPORT ToO(DATASET(Types.WordElement) r, DATASET(Types.LexiconElement) l) := FUN
 	  SELF := le;
 	END;
 	
-	RETURN JOIN(r,l,LEFT.word = RIGHT.word,take(LEFT,RIGHT));
+	JWide := JOIN(r,l,LEFT.word = RIGHT.word,take(LEFT,RIGHT));
+	JThin := JOIN(r,l,LEFT.word = RIGHT.word,take(LEFT,RIGHT),LOOKUP);
+	// Have to guess at actual lexicon size ...
+	RETURN IF ( COUNT(l)*100 < ML.Config.MaxLookup, JThin, JWide );
 	
 END;
 

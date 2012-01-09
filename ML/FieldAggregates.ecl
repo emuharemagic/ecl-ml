@@ -11,7 +11,7 @@ SingleField := RECORD
 	Types.t_fieldreal var     :=VARIANCE(GROUP,d.Value);
 	Types.t_fieldreal sd      :=SQRT(VARIANCE(GROUP,d.Value));
 END;
-	
+
 EXPORT Simple:=TABLE(d,SingleField,Number,FEW);
 
 RankableField := RECORD
@@ -47,7 +47,7 @@ END;
 SHARED T := TABLE(SimpleRanked,MR,Number,Value);
 
 dModeVals:=TABLE(T,{number;UNSIGNED modeval:=MAX(GROUP,valcount);},number,FEW);
-EXPORT Modes:=JOIN(T,dModeVals,LEFT.number=RIGHT.number AND LEFT.valcount=RIGHT.modeval,TRANSFORM({TYPEOF(T.number) number;TYPEOF(T.value) mode;},SELF.mode:=LEFT.value;SELF:=LEFT;),LOOKUP);
+EXPORT Modes:=JOIN(T,dModeVals,LEFT.number=RIGHT.number AND LEFT.valcount=RIGHT.modeval,TRANSFORM({TYPEOF(T.number) number;TYPEOF(T.value) mode; UNSIGNED cnt},SELF.cnt := LEFT.valcount;SELF.mode:=LEFT.value;SELF:=LEFT;),LOOKUP);
 
 EXPORT Cardinality:=TABLE(T,{number;UNSIGNED cardinality:=COUNT(GROUP);},number);
 
