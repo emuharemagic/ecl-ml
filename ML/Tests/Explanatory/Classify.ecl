@@ -24,11 +24,10 @@ D2 := ML.Discretize.ByRounding(D1);
 BayesModule := ML.Classify.NaiveBayes;
 
 TestModule := BayesModule.TestD(D2(Number<=3),D2(Number=4));
-TestModule.Raw;
 TestModule.CrossAssignments;
 TestModule.PrecisionByClass;
-TestModule.Headline;
+TestModule.Accuracy;
 
 Model := BayesModule.LearnD(D2(Number<=3),D2(Number=4));
 Results := BayesModule.ClassifyD(D2(Number<=3),Model);
-Results
+Results;

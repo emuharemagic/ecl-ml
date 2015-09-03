@@ -1,9 +1,14 @@
-IMPORT ML.mat as Mat;
+﻿IMPORT ML.mat as Mat;
 EXPORT Types := MODULE
 
-// This module currently allows for more than a quadrillion rows with 9B features
-// If your needs are lower that making these two smaller will improve performance
-// In particular an unsigned4 for recordid allows 9B rows and an unsigned2 for number allows 64K features
+// The t_RecordID and t_FieldNumber are native datatypes of the ML libraries and they currently
+// allow for a quadrillion rows with 9B features. If your needs are lower, then making these two smaller
+// will improve performance. In particular an unsigned4 for recordid allows 9B rows and an unsigned2 
+// for number allows 64K features.
+//
+// Some ML modules such as Classify.Logistic, Cluster, Distribution, IRegression and Sampling, also require 
+// use of the matrix libraries; When these ML modules are used, and the number of rows exceeds 9B, 
+// the ML.Mat.Types.t_Index type needs to be compatible with the t_RecordID type.
 EXPORT t_RecordID := UNSIGNED;
 EXPORT t_FieldNumber := UNSIGNED4;
 EXPORT t_FieldReal := REAL8;
@@ -22,6 +27,10 @@ EXPORT DiscreteField := RECORD
   t_RecordID id;
 	t_FieldNumber number;
 	t_Discrete value;
+  END;
+
+EXPORT l_result := RECORD(DiscreteField)
+  REAL8 conf;  // Confidence - high is good
   END;
 
 EXPORT ItemElement := RECORD

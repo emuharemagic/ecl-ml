@@ -1,5 +1,5 @@
-﻿//    Ordinary least squares regression using dense matrix structures.
-//
+//    Ordinary least squares regression using dense matrix structures.
+
 //The object of the regression module is to generate a regression model.
 //A regression model relates the dependent variable Y to a function of
 //the independent variables X, and a vector of unknown parameters Beta
@@ -54,10 +54,10 @@ EXPORT OLS(DATASET(NumericField) X,DATASET(NumericField) Y)
   EXPORT DATASET(Types.NumericField) betas := sBetas;
 
   // the model Y values.
-  y_est := PBblas.PB_dgemm(FALSE, FALSE, 1.0, x_map, x_part, b_map,
-                           BetasAsPartition, y_map);
+  y_est := PBblas.PB_dgemm(FALSE, FALSE, 1.0, x_map, x_part, b_map, BetasAsPartition, y_map);
   EXPORT DATASET(Part) modelY_part := y_est;
-  y_est_nf := DMat.Converted.FromPart2DS(modelY_part);
+  Y_numbers := SET(dedup(sort(Y,number),number),number);
+  y_est_nf := DMat.Converted.FromPart2DS(modelY_part)(number IN Y_numbers);
   EXPORT DATASET(NumericField) modelY := y_est_nf;
 
   // Extrapolated values
@@ -67,13 +67,13 @@ EXPORT OLS(DATASET(NumericField) X,DATASET(NumericField) Y)
     nx_map  := Matrix_Map(nx_rows, x_cols, new_block, x_cols);
     ny_map  := Matrix_Map(nx_rows, y_cols, new_block, y_cols);
     nx_part := DMat.Converted.FromNumericFieldDS(newX, nx_map, 1, 1.0);
-    ny_ex := PBblas.PB_dgemm(FALSE, FALSE, 1.0, nx_map, nx_part, b_map,
-                          BetasAsPartition, ny_map);
+    ny_ex := PBblas.PB_dgemm(FALSE, FALSE, 1.0, nx_map, nx_part, b_map, BetasAsPartition, ny_map);
     RETURN ny_ex;
   END;
   EXPORT DATASET(NumericField) Extrapolated(DATASET(NumericField) newX) := FUNCTION
+    newX_numbers := SET(dedup(sort(newX,number),number),number);
     yex_p := Extrapolated_part(newX);
-    rslt := DMat.Converted.FromPart2DS(yex_p);
+    rslt := DMat.Converted.FromPart2DS(yex_p)(number NOT IN newX_numbers);
     RETURN rslt;
   END;
   // R-Squared

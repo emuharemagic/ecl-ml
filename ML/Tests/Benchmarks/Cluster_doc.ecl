@@ -11,9 +11,8 @@
 
 IMPORT ML;
 
-lMatrix:={UNSIGNED id;REAL x;REAL y;};
+lMatrix:=ML.Types.NumericField;
 
-/*
 dDocumentMatrix:=DATASET([
 {1,2.4639,7.8579},
 {2,0.5573,9.4681},
@@ -116,8 +115,8 @@ dDocumentMatrix:=DATASET([
 {99,3.6239,5.3696},
 {100,3.2393,3.0533}
 ],lMatrix);
-*/
-dDocumentMatrix := DATASET('~tmp::keren::randomTest',{UNSIGNED ID, REAL A, REAL B, REAL C, REAL D, REAL E}, Flat);
+
+// dDocumentMatrix := DATASET('~tmp::keren::randomTest',{UNSIGNED ID, REAL A, REAL B, REAL C, REAL D, REAL E}, Flat);
 
 dCentroidMatrix:=DATASET([
 {1,1,1,1,1,1},
@@ -130,7 +129,7 @@ dCentroidMatrix:=DATASET([
 ML.ToField(dCentroidMatrix,dCentroids);
 
                                                          // EXAMPLES
-KMeans:=ML.Cluster.KMeans(dDocumentsMatrix,dCentroids,30,.3);  // Set up KMeans with a maximum of 30 iterations and .3 as a convergence threshold
+KMeans:=ML.Cluster.KMeans(dDocumentMatrix,dCentroids,30,.3);  // Set up KMeans with a maximum of 30 iterations and .3 as a convergence threshold
 KMeans.Allresults;                                       // The table that contains the results of each iteration
 KMeans.Convergence;                                      // The number of iterations it took to converge
 KMeans.Result(12);                                       // The results of iteration 12

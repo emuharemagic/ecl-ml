@@ -12,13 +12,13 @@ d := DATASET([{1,18,76.1}, {2,19,77}, {3,20,78.1},
 ML.ToField(d,o);
 X := O(Number IN [1]); // Pull out the age
 Y := O(Number IN [2]); // Pull out the height
-Reg := ML.Regression.OLS(X,Y);
-B := Reg.Beta();
+Reg := ML.Regression.Dense.OLS_LU(X,Y);
+B := Reg.Betas();
 B;
 Reg.ModelY;
-Reg.Extrapolate(X,B);
+Reg.Extrapolated(X);
 
 Reg.RSquared;
 Reg.Anova;
-B2:= Reg.Beta(Reg.MDM.LU);
+
 

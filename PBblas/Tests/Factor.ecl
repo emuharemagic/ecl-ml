@@ -1,4 +1,4 @@
-﻿// Test for the factorization definitions.  Cholesky and LU.
+// Test for the factorization definitions.  Cholesky and LU.
 IMPORT PBblas;
 IMPORT PBblas.Tests;
 IMPORT PBblas.Types;

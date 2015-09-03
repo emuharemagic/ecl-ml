@@ -10,6 +10,7 @@ EXPORT Types := MODULE
   EXPORT Triangle     := ENUM(UNSIGNED1, Upper=1, Lower=2); //Warning
   EXPORT Diagonal     := ENUM(UNSIGNED1, UnitTri=1, NotUnitTri=2);  //Warning
   EXPORT Side         := ENUM(UNSIGNED1, Ax=1, xA=2);  //Warning
+  EXPORT t_mu_no      := UNSIGNED2; //Allow up to 64k matrices in one universe
 
   // Sparse
   EXPORT Layout_Cell  := RECORD   // WARNING:  Do not change without MakeR8Set
@@ -37,5 +38,9 @@ EXPORT Types := MODULE
     dimension_t     t_block_col;
     dimension_t     t_term;
     Layout_Part;
+  END;
+  //Matrix Universe
+  EXPORT MUElement := RECORD(Layout_Part)
+    t_mu_no no; // The number of the matrix within the universe
   END;
 END;

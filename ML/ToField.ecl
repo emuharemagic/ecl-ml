@@ -62,7 +62,7 @@ EXPORT ToField(dIn,dOut,idfield='',datafields=''):=MACRO
         #IF(%'{@label}'%=#TEXT(idfield))
           #APPEND(mapping,',{\''+%'{@label}'%+'\',\'ID\'}')
         #ELSE
-          #IF(REGEXREPLACE('[^a-z]',%'{@type}'%,'') IN ['unsigned','integer','real','decimal','udecimal'] #IF(#TEXT(datafields)!='') AND REGEXFIND(','+%'{@label}'%+',',','+datafields+',',NOCASE) #END)
+          #IF(REGEXREPLACE('[^a-z]',%'{@type}'%,'') IN ['unsigned','integer','real','decimal','udecimal'] #IF(#TEXT(datafields)!='') AND REGEXFIND('\\s*,\\s*'+%'{@label}'%+',',','+datafields+',',NOCASE) #END)
             #APPEND(normlist,',(ML.Types.t_FieldReal)LEFT.'+%'{@label}'%)
             #SET(iNumberOfFields,%iNumberOfFields%+1)
             #APPEND(mapping,',{\''+%'{@label}'%+'\',\''+%'iNumberOfFields'%+'\'}')

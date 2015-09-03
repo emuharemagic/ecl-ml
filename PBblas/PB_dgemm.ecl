@@ -30,14 +30,22 @@ EXPORT PB_dgemm(BOOLEAN transposeA, BOOLEAN transposeB, value_t alpha,
   c_col_blocks  := map_c.col_blocks;
   A := ASSERT(A_in,
               ASSERT(a_matrix_cols=b_matrix_rows AND a_col_blocks=b_row_blocks,
-                    'A-B ' + PBblas.Constants.Dimension_Incompat, FAIL),
+                    'A-B: ' + 'A is ' + map_a.matrix_rows+'x'+map_a.matrix_cols +
+                    ' Trans: '+ IF(transposeA,'Yes','No') + ' and B is ' + map_b.matrix_rows+'x'+map_b.matrix_cols +
+                    ' Trans: '+ IF(transposeB,'Yes','No') + ' ' +PBblas.Constants.Dimension_Incompat, FAIL),
               ASSERT(a_matrix_rows=c_matrix_rows AND a_row_blocks=c_row_blocks,
-                    'A-C ' + PBblas.Constants.Dimension_Incompat, FAIL));
+                    'A-C: ' + 'Arows: ' + a_matrix_rows +' Crows '+c_matrix_rows+' '+ 
+                              'Ablocks: ' + a_row_blocks +' Cblocks '+c_row_blocks+' '+
+                              PBblas.Constants.Dimension_Incompat, FAIL));
   B := ASSERT(B_in,
               ASSERT(a_matrix_cols=b_matrix_rows AND a_col_blocks=b_row_blocks,
-                    'A-B ' + PBblas.Constants.Dimension_Incompat, FAIL),
+                    'A-B: ' + 'A is ' + map_a.matrix_rows+'x'+map_a.matrix_cols +
+                    ' Trans: '+ IF(transposeA,'Yes','No') + ' and B is ' + map_b.matrix_rows+'x'+map_b.matrix_cols +
+                    ' Trans: '+ IF(transposeB,'Yes','No') +' ' +PBblas.Constants.Dimension_Incompat, FAIL),
               ASSERT(b_matrix_cols=c_matrix_cols AND b_col_blocks=c_col_blocks,
-                    'B-C ' + PBblas.Constants.Dimension_Incompat, FAIL));
+                    'B-C: ' + 'Brows: ' + b_matrix_cols +' Ccols '+c_matrix_cols+' '+ 
+                              'Bblocks: ' + b_row_blocks +' Cblocks '+c_col_blocks+' '+
+                              PBblas.Constants.Dimension_Incompat, FAIL));
 //
   Layout_Target cvt(Layout_Part par, INTEGER c,
                     BOOLEAN transpose, BOOLEAN keepRow) := TRANSFORM

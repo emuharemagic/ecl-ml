@@ -38,11 +38,10 @@ done := ML.Discretize.Do(o,inst);
 BayesModule := ML.Classify.NaiveBayes;
 
 TestModule := BayesModule.TestD(done(Number<=3),done(Number=4));
-TestModule.Raw;
 TestModule.CrossAssignments;
 TestModule.PrecisionByClass;
-TestModule.Headline;
+TestModule.Accuracy;
 
 Model := BayesModule.LearnD(done(Number<=3),done(Number=4));
 Results := BayesModule.ClassifyD(done(Number<=3),Model);
-Results
+Results;

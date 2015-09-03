@@ -71,12 +71,12 @@ EXPORT PB_dgetrf(IMatrix_Map map_a, DATASET(Layout_Part) A) := FUNCTION
     base0     := PROJECT(parts(block_row>rc_pos AND block_col>rc_pos),
                          stamp(LEFT, LEFT.block_row, LEFT.block_col, Term.BaseTerm));
     baseParts := SORT(base0, t_part_id);
-    col0      := NORMALIZE(newCol, map_a.row_blocks-rc_pos,
+    col0w     := NORMALIZE(newCol, map_a.row_blocks-rc_pos,
                          stamp(LEFT, LEFT.block_row, rc_pos+COUNTER, Term.LeftTerm));
-    colParts  := SORT(col0, t_part_id);
-    row0      := NORMALIZE(newRow, map_a.col_blocks-rc_pos,
+    colParts  := SORT(col0w, t_part_id);
+    row0w     := NORMALIZE(newRow, map_a.col_blocks-rc_pos,
                          stamp(LEFT, rc_pos+COUNTER, LEFT.block_col, Term.RghtTerm));
-    rowParts  := SORT(row0, t_part_id);
+    rowParts  := SORT(row0w, t_part_id);
     Layout_Target update(DATASET(Layout_Target) p) := TRANSFORM
       haveBase := EXISTS(p(t_term=Term.BaseTerm));
       haveLeft := EXISTS(p(t_term=Term.LeftTerm));
@@ -111,13 +111,10 @@ EXPORT PB_dgetrf(IMatrix_Map map_a, DATASET(Layout_Part) A) := FUNCTION
       SELF.t_block_col:= block_col;
       SELF.t_term     := Term.BaseTerm;
     END;
-    inpSet := [rowParts, colParts, baseParts];
-    new0 := JOIN(inpSet,
-                 LEFT.t_part_id=RIGHT.t_part_id,
-                 update(ROWS(LEFT)),
-                 SORTED(t_part_id), MOFN(1));
-    newSub := SORTED(PROJECT(new0, Layout_Part), partition_id);
-    rslt := SORT(newCorner & newRow & newCol & newSub, partition_id);
+    new0 := GROUP(SORT(rowParts+colParts+baseParts, t_part_id), t_part_id);
+    new1 := ROLLUP(new0, GROUP, update(ROWS(LEFT)));
+    newSub := SORTED(PROJECT(new1, Layout_Part), partition_id);
+    rslt := SORT(newCorner + newRow + newCol + newSub, partition_id);
     RETURN rslt;
   END; // loop Body
   a_sorted := SORT(A, partition_id);

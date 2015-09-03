@@ -367,8 +367,39 @@ EXPORT RebaseNumericField(DATASET(Types.NumericField) cl) := MODULE
 	EXPORT ToOld(DATASET(Types.NumericField) cl, DATASET(MapRec) MapTable) := FUNCTION
  		RETURN JOIN(cl,MapTable,LEFT.number=RIGHT.new,TRANSFORM(Types.NumericField, SELF.number := RIGHT.old, SELF:=LEFT),LOOKUP);
   END;	
+  
+    EXPORT ToOldFromElemToPart(DATASET(Types.NumericField) cl, DATASET(MapRec) MapTable) := FUNCTION
+ 		RETURN JOIN(cl,MapTable,LEFT.id=RIGHT.new,TRANSFORM(Types.NumericField, SELF.id := RIGHT.old, SELF.number:=LEFT.number,SELF:=LEFT),LOOKUP);
+  END;
 	
   END;	
+
+EXPORT RebaseNumericFieldID(DATASET(Types.NumericField) cl) := MODULE
+  SHARED MapRec:=RECORD
+		Types.t_RecordID old;
+		Types.t_RecordID new;
+	END;
+  olds := TABLE(cl, {cl.id,COUNT(GROUP)}, id, FEW);
+	
+	EXPORT MappingID(Types.t_FieldNumber new_lowval=1) := FUNCTION
+	MapRec mapthem(olds le, UNSIGNED c) := TRANSFORM
+		SELF.old := le.id;
+		SELF.new := c-1+new_lowval;
+	END;
+		RETURN PROJECT(olds, mapthem(LEFT, COUNTER));
+	END;
+	
+	
+		
+	EXPORT ToNew(DATASET(MapRec) MapTable) := FUNCTION
+ 		RETURN JOIN(cl,MapTable,LEFT.id=RIGHT.old,TRANSFORM(Types.NumericField, SELF.id := RIGHT.new, SELF:=LEFT),LOOKUP);
+  END;	
+	
+	EXPORT ToOld(DATASET(Types.NumericField) cl, DATASET(MapRec) MapTable) := FUNCTION
+ 		RETURN JOIN(cl,MapTable,LEFT.id=RIGHT.new,TRANSFORM(Types.NumericField, SELF.id := RIGHT.old, SELF:=LEFT),LOOKUP);
+  END;	
+	
+  END;
 
 // Service functions and support pattern
 EXPORT	NotFirst(STRING S) := IF(Str.FindCount(S,' ')=0,'',S[Str.Find(S,' ',1)+1..]);
@@ -403,6 +434,27 @@ RETURN TABLE(LOOP(Init,K,Permutate(ROWS(LEFT))), {Kperm});
 
 END;
 	
+EXPORT ToGroundTruth(DATASET(Types.NumericField) Y ) := FUNCTION
+
+
+zero_mat    := DATASET ([{1,1,0}],Mat.Types.Element);
+sample_num  := MAX (Y,Y.id);
+class_num   := MAX (Y, Y.value);
+scratch_mat := Mat.Repmat (zero_mat, class_num, sample_num);
+
+
+
+Mat.Types.Element ToGT(scratch_mat l, Y r) := TRANSFORM
+  SELF.value := IF(l.x=r.value,1,0);
+  SELF := l;
+END;
+
+
+Result := JOIN (scratch_mat, Y, LEFT.y=RIGHT.id , ToGT(LEFT,RIGHT));
+
+RETURN Result;
+
+END; // END ToGroundTruth
 
 	
 	

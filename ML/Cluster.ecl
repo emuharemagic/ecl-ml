@@ -1,4 +1,4 @@
-﻿//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 // Module used to cluster perform clustering on data in the NumericField
 // format.  Includes functions for calculating distance using many different
 // algorithms, determining centroid allegiance based on those distances, and
@@ -244,7 +244,7 @@ EXPORT Cluster := MODULE
     // method specified by the user for this module
     SHARED dDistanceDelta(UNSIGNED n01=n-1,UNSIGNED n02=n,DATASET(lIterations) d):=FUNCTION
       iMax01:=MAX(dResult(n01,d),id);
-      dDistances:=Distances(dResult(n01,d),PROJECT(dResult(n02,d),TRANSFORM(Types.NumericField,SELF.id:=LEFT.id+iMax01;SELF:=LEFT;)));
+      dDistances:=Distances(dResult(n01,d),PROJECT(dResult(n02,d),TRANSFORM(Types.NumericField,SELF.id:=LEFT.id+iMax01;SELF:=LEFT;)),fDist);
       RETURN PROJECT(dDistances(x=y-iMax01),TRANSFORM({Types.NumericField AND NOT [number];},SELF.id:=LEFT.x;SELF:=LEFT;));
     END;
 
@@ -260,7 +260,7 @@ EXPORT Cluster := MODULE
       // set the current centroids to the results of the most recent iteration
       dCentroids:=PROJECT(d,TRANSFORM(Types.NumericField,SELF.value:=LEFT.values[c];SELF:=LEFT;));
       // get all document-to-centroid distances, and determine centroid allegiance
-      dDistances:=Distances(d01,dCentroids);
+      dDistances:=Distances(d01,dCentroids,fDist);
       dClosest:=Closest(dDistances);
       // Get a count of the number of documents allied to each centroid
       dClusterCounts:=TABLE(dClosest,{y;UNSIGNED c:=COUNT(GROUP);},y,FEW);
@@ -280,7 +280,7 @@ EXPORT Cluster := MODULE
       RETURN IF(bConverged,d,dAdded);
     END;
     dIterationResults:=LOOP(d02Prep,n,fIterate(ROWS(LEFT),COUNTER));
-    SHARED dIterations:=IF(iOffset>0,PROJECT(dIterationResults,TRANSFORM(lIterations,SELF.id:=LEFT.id-iOffset;SELF:=LEFT;)),dIterationResults);
+    SHARED dIterations:=IF(iOffset>0,PROJECT(dIterationResults,TRANSFORM(lIterations,SELF.id:=LEFT.id-iOffset;SELF:=LEFT;)),dIterationResults):INDEPENDENT;
 
     // Show the fully traced result set
     EXPORT lIterations AllResults:=dIterations;
@@ -319,6 +319,7 @@ EXPORT Cluster := MODULE
 			Types.t_RecordID Id := 0;
 			Types.t_FieldReal value := 0;
 			STRING Members := (STRING)dinit0.id;
+			STRING newick := (STRING)dinit0.id;
 		END;
 		ConcatAll(DATASET(ClusterRec) s) := FUNCTION
 			R := RECORD
@@ -326,8 +327,14 @@ EXPORT Cluster := MODULE
 			END;
 			RETURN AGGREGATE(s,R,TRANSFORM(R,SELF.St := IF( RIGHT.St = '', LEFT.Members, RIGHT.St+' '+LEFT.Members)),TRANSFORM(R,SELF.St := IF( RIGHT1.St = '', RIGHT2.St, RIGHT1.St+' '+RIGHT2.St)))[1].St;
 		END;
+		ConcatAllnewick(DATASET(ClusterRec) s) := FUNCTION
+			R := RECORD
+			  STRING St;
+			END;
+			RETURN AGGREGATE(s,R,TRANSFORM(R,SELF.St := IF( RIGHT.St = '', LEFT.newick, RIGHT.St+' '+LEFT.newick)),TRANSFORM(R,SELF.St := IF( RIGHT1.St = '', RIGHT2.St, RIGHT1.St+' '+RIGHT2.St)))[1].St;
+		END;
 		dinit1 := TABLE(dinit0,ClusterRec);
-		DistAsClus := PROJECT( Distance, TRANSFORM(ClusterRec, SELF.Members:='', SELF.clusterid:=LEFT.y, SELF.id := LEFT.x, SELF := LEFT) );
+		DistAsClus := PROJECT( Distance, TRANSFORM(ClusterRec, SELF.Members:='', SELF.newick:='newick', SELF.clusterid:=LEFT.y, SELF.id := LEFT.x, SELF := LEFT) );
 		Dinit := dinit1+DistAsClus;
 		Step(DATASET(ClusterRec) cd00) := FUNCTION
 		  cd := cd00(Members='');
@@ -355,22 +362,32 @@ EXPORT Cluster := MODULE
 				REAL8 AveV := AVE(GROUP,cd1.value);
 			END;
 			cd2 := TABLE(cd1,r1,id,clusterid);
-			cd3 := PROJECT(cd2,TRANSFORM(ClusterRec,SELF.Members:='',SELF.value := CASE( cm,c_Method.min_dist => LEFT.MinV, c_Method.max_dist => LEFT.MaxV, LEFT.AveV ), SELF := LEFT ));
+			cd3 := PROJECT(cd2,TRANSFORM(ClusterRec,SELF.Members:='',SELF.newick:='',SELF.value := CASE( cm,c_Method.min_dist => LEFT.MinV, c_Method.max_dist => LEFT.MaxV, LEFT.AveV ), SELF := LEFT ));
 			// Now perform the actual clustering
 			// First we flag those that will be growing clusters with a 1
 			J1 := JOIN(cl,tojoin,LEFT.Clusterid=RIGHT.Clusterid,TRANSFORM(ClusterRec,SELF.id := IF ( RIGHT.ClusterID<>0, 1, 0 ),SELF := LEFT),LEFT OUTER,KEEP(1));
 			// Those that will be collapsing get the cluster number in their ID slot
-			J2 := JOIN(J1(id=0),tojoin,LEFT.Clusterid=RIGHT.id,TRANSFORM(ClusterRec,SELF.id := RIGHT.ClusterId,SELF := LEFT),LEFT OUTER);
+			J2 := JOIN(J1(id=0),tojoin,LEFT.Clusterid=RIGHT.id,TRANSFORM(ClusterRec,SELF.id := RIGHT.ClusterId,SELF.value:=RIGHT.value,SELF := LEFT),LEFT OUTER);
 			// Those remaining inert will get a 0
 			ClusterRec JoinCluster(J1 le,DATASET(ClusterRec) ri) := TRANSFORM
+			  v:=REGEXREPLACE('^ +',REALFORMAT(ri[1].value,5,2),'');
+			  left_newick:=IF(REGEXFIND('\\):[0-9]+\\.[0-9]+$',le.newick),le.newick,le.newick+':'+v);
+			  c:=ConcatAllnewick(ri);
+			  right_newick:=IF(REGEXFIND('\\):[0-9]+\\.[0-9]+$',c),c,c+':'+v);
 			  SELF.clusterid := le.clusterid;
 				SELF.Members := '{'+le.Members+'}{'+ConcatAll(ri)+'}';
+			  SELF.newick := '('+left_newick+';'+right_newick+'):'+v;
 			END;
 			J3 := DENORMALIZE(J1(id=1),J2(id<>0),LEFT.ClusterId=RIGHT.id,GROUP,JoinCluster(LEFT,ROWS(RIGHT)));
 			RETURN IF(~EXISTS(CD),CL,J3+J2(id=0)+cd3);
 		END;
-	SHARED res := LOOP(dinit,N,Step(ROWS(LEFT)));
+	SHARED res := LOOP(dinit,(COUNTER<=N) AND (COUNT(ROWS(LEFT))>1),Step(ROWS(LEFT)));
 	EXPORT Dendrogram := TABLE(res(Members<>''),{ClusterId,Members});
+	newick_dendrogram_rec := RECORD
+	    Types.t_RecordID ClusterId:=res.ClusterId;
+	    STRING newick := '('+REGEXREPLACE(';',res.newick,',')+');';
+	END;
+	EXPORT NewickDendrogram := TABLE(res((newick<>'') and (newick<>'newick')),newick_dendrogram_rec);
 	EXPORT Distances := TABLE(res(Members=''),{ClusterId,Id,Value});
 		NoBrace(STRING S) := Str.CleanSpaces(Str.SubstituteIncluded(S,'{}',' '));
     De := TABLE(Dendrogram,{ClusterId,Ids := NoBrace(Members)});

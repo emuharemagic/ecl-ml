@@ -22,7 +22,7 @@ OUTPUT(newDependent, NAMED('Dep3Folds'),ALL);
 OUTPUT(results1.CrossAssignments, NAMED('CA_1'));
 OUTPUT(results1.RecallByClass, NAMED('Rec1'));
 OUTPUT(results1.PrecisionByClass, NAMED('Pre1'));
-OUTPUT(SORT(results1.FP_Rate_ByClass, classifier, class), NAMED('FPR1'));
+OUTPUT(SORT(results1.FP_Rate_ByClass, classifier, c_modeled), NAMED('FPR1'));
 OUTPUT(results1.Accuracy, NAMED('Acc1'));
 
 // Example 2:
@@ -54,7 +54,7 @@ compareAll:= ML.Classify.Compare(depAll, results);
 OUTPUT(compareAll.CrossAssignments, NAMED('CA_2'));
 OUTPUT(compareAll.RecallByClass, NAMED('Rec2'));
 OUTPUT(compareAll.PrecisionByClass, NAMED('Pre2'));
-OUTPUT(SORT(compareAll.FP_Rate_ByClass, classifier, class), NAMED('FPR2'));
+OUTPUT(SORT(compareAll.FP_Rate_ByClass, classifier, c_modeled), NAMED('FPR2'));
 OUTPUT(compareAll.Accuracy, NAMED('Acc2'));
 
 // Example 3:
@@ -93,7 +93,7 @@ OUTPUT(rec_3, NAMED('Rec3'));
 pre_3:= compareCV.PrecisionByClass;
 OUTPUT(pre_3, NAMED('Pre3'));
 fpr_3:= compareCV.FP_Rate_ByClass;
-OUTPUT(SORT(fpr_3, classifier, class), NAMED('FPR3'));
+OUTPUT(SORT(fpr_3, classifier, c_modeled), NAMED('FPR3'));
 acc_3:=compareCV.Accuracy;
 OUTPUT(SORT(acc_3, classifier), NAMED('Acc3'));
 
@@ -101,6 +101,6 @@ OUTPUT(SORT(acc_3, classifier), NAMED('Acc3'));
 OUTPUT(TABLE(ca_3, {c_actual, c_modeled, tot:= SUM(GROUP,cnt)}, c_actual, c_modeled), NAMED('CA_3_sum'));
 OUTPUT(TABLE(rec_3, {c_actual, tp_avg:= AVE(GROUP,tp_rate)}, c_actual), NAMED('Rec_3_avg'));
 OUTPUT(TABLE(pre_3, {c_modeled, precision_avg:= AVE(GROUP,precision)}, c_modeled), NAMED('pre_3_avg'));
-OUTPUT(TABLE(fpr_3, {class, fpr_avg:= AVE(GROUP, fp_rate)}, class), NAMED('fpr_3_avg'));
+OUTPUT(TABLE(fpr_3, {c_modeled, fpr_avg:= AVE(GROUP, fp_rate)}, c_modeled), NAMED('fpr_3_avg'));
 OUTPUT(AVE(acc_3, accuracy), NAMED('accuracy_3_avg'));
 

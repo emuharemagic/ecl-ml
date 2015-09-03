@@ -51,7 +51,7 @@ EXPORT DiffReport := MODULE
     d0 := JOIN(std, tst,
                LEFT.x=RIGHT.x AND LEFT.y=RIGHT.y,
                cmpr(LEFT, RIGHT), FULL OUTER);
-    d1 := GROUP(d0, TRUE);
+    d1 := GROUP(d0, TRUE) : ONWARNING(2029, ignore);
     r1 := ROLLUP(d1, GROUP, roll(ROWS(LEFT), testName));
     RETURN r1;
   END;

@@ -1,8 +1,9 @@
-﻿IMPORT ML;
+IMPORT ML;
 IMPORT ML.Types AS Types;
 IMPORT Std.Str ;
 IMPORT ML.mat as Mat;
 NumericField := Types.NumericField;
+
 /*
   The object of the regression module is to generate a regression model.
   A regression model relates the dependent variable Y to a function of
@@ -12,7 +13,7 @@ NumericField := Types.NumericField;
   Beta so that a regression function Y = f(X,Beta) can be constructed
 */
 
-// OrdinaryLeastSquares, aka LinearLeastSquares, the simplest and most common estimator
+// OrdinaryLeastSquares, aka LinearLeastSquares, the simplest and most common estimato
 // Beta = (Inv(X'*X)*X')*Y
 EXPORT OLS(DATASET(NumericField) X,DATASET(NumericField) Y)
 := MODULE(ML.IRegression)
@@ -42,7 +43,7 @@ EXPORT OLS(DATASET(NumericField) X,DATASET(NumericField) Y)
   EXPORT DATASET(NumericField) Extrapolated(DATASET(NumericField) newX) := FUNCTION
     mX_0 := Types.ToMatrix(newX);
     mXloc := Mat.InsertColumn(mX_0, 1, 1.0); // Insert X1=1 column
-    RETURN Types.FromMatrix( Mat.Mul(mXloc, Mat.Trans(mBetas)) );
+    RETURN Types.FromMatrix( Mat.Mul(mXloc, mBetas) );
   END;
 
   // Y.number = number*2; Y_est.number = number*2+1;

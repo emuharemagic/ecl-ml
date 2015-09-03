@@ -29,6 +29,13 @@ EXPORT SimpleRanked := P;
 dMedianPos:=TABLE(SimpleRanked,{number;SET OF UNSIGNED pos:=IF(MAX(GROUP,pos)%2=0,[(MAX(GROUP,pos))/2,(MAX(GROUP,pos))/2+1],[(MAX(GROUP,pos)/2)+1]);},number,FEW);
 dMedianValues:=JOIN(SimpleRanked,dMedianPos,LEFT.number=RIGHT.number AND LEFT.pos IN RIGHT.pos,TRANSFORM({RECORDOF(SimpleRanked) AND NOT [id,pos];},SELF:=LEFT;),LOOKUP);
 EXPORT Medians:=TABLE(dMedianValues,{number;TYPEOF(dMedianValues.value) median:=IF(COUNT(GROUP)=1,MIN(GROUP,value),SUM(GROUP,value)/2);},number,FEW);
+nextRec:= RECORD(RECORDOF(Medians))
+  TYPEOF(SimpleRanked.value) nextval;
+END;
+// MinMedNext is used on KDTree, when median = minval nextval is used instead median in order to avoid endless right-node propagation
+// NOTE: when RIGHT is not present MAX(RIGHT.value, LEFT.median) works only for LEFT.median positive values, otherwise it returns 0 (0 is greater than a negative number)
+dNextVals:= JOIN(Medians, SimpleRanked, LEFT.number = RIGHT.number AND LEFT.median < RIGHT.value, TRANSFORM(nextRec, SELF:= LEFT, SELF.nextval:= MAX(RIGHT.value, LEFT.median)), KEEP(1), LEFT OUTER);
+EXPORT MinMedNext:= JOIN(dNextVals, Simple, LEFT.number = RIGHT.number, LOOKUP);
 
 {RECORDOF(SimpleRanked);Types.t_Discrete bucket;} tAssign(SimpleRanked L,Simple R,Types.t_Discrete n):=TRANSFORM
   SELF.bucket:=IF(L.value=R.maxval,n,(Types.t_Discrete)(n*((L.value-R.minval)/(R.maxval-R.minval)))+1);

@@ -118,11 +118,10 @@ EXPORT PB_dpotrf(Triangle tri, IMatrix_Map map_a, DATASET(Layout_Part) A) := FUN
                               matrix_c);
       SELF              := lr;
     END;
-    recordSets := [Term1_d, Term2_d, Term3_d];
-    updatedSub := JOIN(recordSets, LEFT.t_part_id=RIGHT.t_part_id,
-                       updMat(LEFT, ROWS(LEFT)), SORTED(t_part_id), MOFN(1));
+    recordSets := GROUP(SORT(Term1_d+Term2_d+Term3_d, t_part_id), t_part_id);
+    updatedSub := ROLLUP(recordSets, GROUP, updMat(LEFT, ROWS(LEFT)));
     subMatrix  := PROJECT(updatedSub, Layout_Part);
-    rslt       := MERGE(cornerMatrix, edgeMatrix, subMatrix, SORTED(partition_id));
+    rslt       := SORT(cornerMatrix+edgeMatrix+subMatrix, partition_id);
     RETURN rslt;
   END;
   // Drop out parts that are not needed
