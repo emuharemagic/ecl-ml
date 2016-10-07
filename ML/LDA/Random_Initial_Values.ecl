@@ -2,8 +2,7 @@ IMPORT $.Types AS Types;
 Model_Collection_Stats := Types.Model_Collection_Stats;
 Model_Parameters := Types.Model_Parameters;
 Model_Topic := Types.Model_Topic;
-/**
- * Initial parameters from random values for log betas.  Use the collection
+/** Initial parameters from random values for log betas.  Use the collection
  * statistics and model parameters to generate an initial set of random
  * beta values.  Note that the nominal values must be dense because the
  * nominal for the random Beta is assigned from a counter.

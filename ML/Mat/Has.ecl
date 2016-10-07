@@ -70,4 +70,12 @@ END;
 
 // SumCol is a row vector containing the sum value of each column.
 EXPORT SumCol := TABLE(d,r,d.y);
+
+r := RECORD
+  Types.t_Index x := 1;
+  Types.t_Index y := d.y;
+  Types.t_Value value := SQRT(VARIANCE(GROUP,d.value));
+END;
+
+EXPORT SDCol := TABLE(d,r,d.y);
 END;

@@ -49,6 +49,7 @@ IMPORT STD.Str;
 LDA.Types.Model_Parameters makeParm() := TRANSFORM
   SELF.model := 1;
   SELF.num_topics := num_topics;
+  SELF.alpha := alpha;
   SELF.max_beta_iterations := em_max_iter;
   SELF.max_doc_iterations := var_max_iter;
   SELF.doc_epsilon := var_convergence;
@@ -100,12 +101,14 @@ END;
 wd := PROJECT(DATASET(documents, StrRec, CSV), makeDoc(LEFT.line, COUNTER));
 docs := PROJECT(wd, LDA.Types.Doc_Mapped)
      : PERSIST(filename_prefix+'doc_input', EXPIRE(10), SINGLE);
+//**************************************************************************
 // Run LDA
+//**************************************************************************
 stats := LDA.Collection_Stats(model_parms, docs);
 test_topics := LDA.Topic_Estimation(model_parms, initial_model, stats, docs)
              : PERSIST(filename_prefix+'result', EXPIRE(10), SINGLE);
 // get baseline beta values
-base_raw_betas := PROJECT(DATASET(final_beta, {STRING line}, CSV),
+base_raw_betas := PROJECT(DATASET(final_beta, StrRec, CSV),
                          TRANSFORM(beta_text, SELF.topic:=COUNTER, SELF:=LEFT));
 Topic_Nominal_Beta := RECORD
   LDA.Types.t_model_id model;
@@ -122,6 +125,20 @@ Topic_Nominal_Beta exBeta(LDA.Types.Model_Topic m,
 END;
 base_betas := NORMALIZE(PROJECT(base_raw_betas, getBetas(LEFT)),
                        LEFT.logBetas, exBeta(LEFT, RIGHT));
+// get baseline document topic scores
+LDA.Types.Topic_Value extTV(STRING s, UNSIGNED t) := TRANSFORM
+  SELF.topic := t;
+  SELF.v := (REAL8) s;
+END;
+LDA.Types.Document_Scored extDocGamma(StrRec sr, UNSIGNED r) := TRANSFORM
+  SELF.model := 1;
+  SELF.rid := r;
+  SELF.likelihood := 0;   // log likelihood
+  SELF.topics := PROJECT(DATASET(Str.SplitWords(sr.line, ' '), StrRec),
+                           extTV(LEFT.line, COUNTER));
+END;
+base_raw_gammas := PROJECT(DATASET(final_gamma, {STRING line}, CSV),
+                           extDocGamma(LEFT, COUNTER));
 // get alpha
 Alpha_Rec := RECORD
   LDA.Types.t_topic topic;
@@ -135,12 +152,11 @@ END;
 base_raw_alpha := PROJECT(DATASET(final_other, StrRec, CSV)(line[1..5]='alpha'),
                          extAlpha(LEFT.line));
 // Get the vocab list
-Vocab_Rec := RECORD
-  LDA.Types.t_nominal nominal;
-  STRING term;
+LDA.Types.Term_Dict getVocab(StrRec sr, UNSIGNED n) := TRANSFORM
+  SELF.nominal := n;
+  SELF.term := sr.line;
 END;
-vocab := PROJECT(DATASET(vocabulary, StrRec, CSV),
-                TRANSFORM(Vocab_Rec,SELF.nominal:=COUNTER-1,SELF.term:=LEFT.line));
+vocab := PROJECT(DATASET(vocabulary, StrRec, CSV), getVocab(LEFT, COUNTER-1));
 //Get term frequency info
 Doc_Term := RECORD
   LDA.Types.t_record_id rid;
@@ -263,9 +279,9 @@ Topic_Term := RECORD
   LDA.Types.t_model_id model;
   LDA.Types.t_topic topic;
   LDA.Types.t_nominal nominal;
-  STRING term;
+  UNICODE term;
 END;
-Topic_Term trm(Topic_Nominal_Beta b, Vocab_Rec vr) := TRANSFORM
+Topic_Term trm(Topic_Nominal_Beta b, LDA.Types.Term_Dict vr) := TRANSFORM
   SELF.term := vr.term;
   SELF := b;
 END;
@@ -278,7 +294,7 @@ Term_Topic := RECORD
   LDA.Types.t_nominal nominal;
   LDA.Types.t_topic test_topic;
   LDA.Types.t_topic base_topic;
-  STRING term;
+  UNICODE term;
   UNSIGNED4 src;
   UNSIGNED4 match_count;
 END;
@@ -300,6 +316,8 @@ scored := TABLE(xmatch(src=3),
 pairs := SORT(scored, test_topic);
 match_tab := TABLE(scored, {score, topics:=COUNT(GROUP)}, score, FEW, UNSORTED);
 match_rpt := SORT(match_tab, -score);
+// Top terms
+top_terms_dev := LDA.Top_Terms(test_topics, vocab).outliers(10);
 //
 doc_tab := TABLE(wd, {num_docs:=COUNT(GROUP), ave_size:=AVE(GROUP,terms),
                       max_size:=MAX(GROUP, terms), min_size:=MIN(GROUP,terms)});

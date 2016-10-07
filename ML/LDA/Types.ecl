@@ -1,4 +1,4 @@
-// Types for LDA
+﻿// Types for LDA
 //WARNING!!!! Do not change t_topic, Topic_Values, TermValues, TermFreq
 //without making corresponding changes to typedef definitions in C++ attributes
 EXPORT Types := MODULE
@@ -7,6 +7,10 @@ EXPORT Types := MODULE
   EXPORT t_model_id := UNSIGNED2;   // model identifier, expect hundreds
   EXPORT t_nominal := UNSIGNED8;    // allow use of hash value for nominal
   EXPORT t_record_id := UNSIGNED4;
+  EXPORT Term_Dict := RECORD
+    t_nominal nominal;
+    UNICODE term;
+  END;
   EXPORT TermValue := RECORD
     t_nominal nominal;              // nominal for the term
     REAL8 v;                        // value
@@ -43,10 +47,15 @@ EXPORT Types := MODULE
     REAL8 alpha;                    // alpha for all topics
     DATASET(TermValue) logBetas;    // nominal and coefficient pairs
   END;
+  EXPORT Model_Seed_Info := RECORD(Model_Identifier)
+    UNSIGNED4 num_topics;           // number of topics to model
+    UNSIGNED2 num_docs;             // number of documents for each topic
+  END;
   EXPORT Model_Parameters := RECORD(Model_Identifier)
     UNSIGNED4 num_topics;           // number of topics to model
     UNSIGNED2 max_beta_iterations;  // EM convergence limit
     UNSIGNED2 max_doc_iterations;   // variational convergence limit
+    REAL8 alpha;                    // initial alpha value;
     REAL8 doc_epsilon;              // maximum change for convergence
     REAL8 beta_epsilon;             // maximum change for convergence
     REAL8 initial_alpha;            // initial alpha value
@@ -64,8 +73,18 @@ EXPORT Types := MODULE
     t_record_id rid;
     DATASET(TermFreq) word_counts;
   END;
+  EXPORT Seed_Document := RECORD(Document)
+    t_model_id model;
+    t_topic topic;
+  END;
   EXPORT Doc_Mapped := RECORD(Document)
     SET OF t_model_id models;
+  END;
+  EXPORT Document_Scored := RECORD
+    t_model_id model;
+    t_record_id rid;
+    REAL8 likelihood;               // log likelihood
+    DATASET(Topic_Value) topics;
   END;
   EXPORT Likelihood_Hist := RECORD
     UNSIGNED2 iteration;
@@ -97,6 +116,16 @@ EXPORT Types := MODULE
     BOOLEAN estimate_alpha;         // evolve the value of alpha
     DATASET(Likelihood_Hist) hist;  // log likelihood values from EM
   END;
+  EXPORT Topic_Term := RECORD
+    t_nominal nominal;              // term nominal
+    REAL8 v;                        // term beta or weight for the topic
+    UNICODE term;                   // text of the term
+  END;
+  EXPORT Model_Topic_Top_Terms := RECORD
+    t_model_id model;               // model identifier
+    t_topic topic;                  // topic identifier
+    DATASET(Topic_Term) terms;      // list of top terms for this topic
+  END;
   // Internal common definitions
   EXPORT Doc_Assigned := RECORD
     t_record_id rid;
@@ -125,6 +154,7 @@ EXPORT Types := MODULE
     TermFreq_DataSet word_counts;   // nominal and term occurrence count pairs
     Topic_Values_DataSet t_phis;    // topic and array of phi values
     Topic_Values_DataSet t_logBetas;// topic and array of log beta values
+    BOOLEAN estimate_alpha;         // evolve the value of alpha
   END;
   EXPORT Alpha_Estimate := RECORD
     t_model_id model;

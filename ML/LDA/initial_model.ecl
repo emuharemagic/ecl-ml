@@ -22,7 +22,7 @@ EXPORT DATASET(Types.Model_Topic_Result)
     SELF.model := mod.model;
     SELF.docs := stat.docs;
     SELF.unique_words := stat.unique_words;
-    SELF.alpha := 50/mod.num_topics;    // use if initial is zero
+    SELF.alpha := IF(mod.alpha=0.0, 50/mod.num_topics, mod.alpha);
     SELF.likelihood_change := 2*mod.beta_epsilon;
     SELF.max_beta_iterations := mod.max_beta_iterations;
     SELF.max_doc_iterations := mod.max_doc_iterations;

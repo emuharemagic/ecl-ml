@@ -71,7 +71,7 @@ EXPORT DATASET(Types.Model_Topic_Result)
   adt_1 := SORT(adt_0, model, rid);
   adt_2 := GROUP(adt_1, model, rid);
   adt_3 := SORT(adt_2, topic_range);
-  adt_4 := ASSERT(adt_3, num_ranges=1, FAIL); // force to single for now
+  adt_4 := adt_3;
   base_doc_topics := UNGROUP(adt_4);
   //EM loop function
   //Doc_Model (doc replicated for each model) evenly distributed, locally
@@ -96,7 +96,7 @@ EXPORT DATASET(Types.Model_Topic_Result)
     Doc_Topics applyMTopic(Doc_Topics doc, DATASET(Work_Rslt) mts) := TRANSFORM
       base_topic := doc.topic_low-1;
       this_nt := doc.topic_high-doc.topic_low+1;
-      init_gamma := MAX(mts,alpha)+SUM(doc.word_counts,v)/MAX(mts,num_topics);
+      init_gamma := MAX(mts,alpha)+(SUM(doc.word_counts,v)/MAX(mts,num_topics));
       init_digamma := digamma(init_gamma);
       SELF.likelihood_change := 2*MAX(mts, doc_epsilon);
       SELF.doc_epsilon := MAX(mts, doc_epsilon);
@@ -106,6 +106,7 @@ EXPORT DATASET(Types.Model_Topic_Result)
       SELF.t_gammas := DATASET(this_nt, init_tg(COUNTER+base_topic, init_gamma));
       SELF.t_digammas := DATASET(this_nt, init_tg(COUNTER+base_topic,init_digamma));
       SELF.t_phis := DATASET(this_nt, init_tp(COUNTER+base_topic, doc));
+      SELF.estimate_alpha := mts[1].estimate_alpha;
       SELF := doc;
     END;
     mtd_u := DENORMALIZE(base_doc_topics, mods,
@@ -178,7 +179,7 @@ EXPORT DATASET(Types.Model_Topic_Result)
       SELF.num_topics := n_tops;
       SELF.alpha_sufstat := SUM(d_g, digamma(v)) - n_tops*digamma(SUM(d_g, v));
     END;
-    grp_alpha_docs := GROUP(cvg_docs, model, rid, LOCAL);
+    grp_alpha_docs := GROUP(cvg_docs(estimate_alpha), model, rid, LOCAL);
     doc_level_ss := ROLLUP(grp_alpha_docs, GROUP, roll_doc_ss(LEFT, ROWS(LEFT)));
     W_Alpha := RECORD
       Types.t_model_id model := doc_level_ss.model;
@@ -191,7 +192,7 @@ EXPORT DATASET(Types.Model_Topic_Result)
       SELF.last_df := 2 * ALPHA_THRESHOLD;
       SELF.iter := 0;
       SELF.init_alpha := 100;
-      SELF.alpha := 100;
+      SELF.alpha := EXP(LN(100));
       SELF.log_alpha := LN(100);
       SELF.suff_stat := wrk.alpha_sufstat;
       SELF := wrk;
@@ -209,7 +210,7 @@ EXPORT DATASET(Types.Model_Topic_Result)
       SELF := mod;
     END;
     mod_a0 := JOIN(mods, new_Alpha, LEFT.model=RIGHT.model,
-                   upd_alpha(LEFT,RIGHT), LOOKUP);
+                   upd_alpha(LEFT,RIGHT), LOOKUP, LEFT OUTER);
     mod_a := SORT(mod_a0, model, topic, LOCAL);
     // gather new betas by model and topic
     MTT := RECORD
